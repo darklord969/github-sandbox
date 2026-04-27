@@ -46,7 +46,7 @@ jobs:
             aria2c --split=2 --max-connection-per-server=2 --min-split-size=90M \
               --out="$FILENAME" --dir="tmp_downloads" "$URL" || continue
 
-            # ساخت پوشه به اسم فایل اصلی
+            # Create folder with the original filename
             FOLDER_NAME="${FILENAME}"
             mkdir -p "downloads/${FOLDER_NAME}"
 
@@ -61,24 +61,24 @@ jobs:
               mv "tmp_downloads/$FILENAME" "downloads/${FOLDER_NAME}/"
             fi
 
-            # ایجاد فایل راهنما جوین کردن
+            # Create join instructions
             cat > "downloads/${FOLDER_NAME}/HOW_TO_JOIN.txt" << 'EOF'
 ====================================
-چگونه فایل را جوین کنیم (روی ویندوز)
+How to Join Split Files (Windows)
 
-1. همه فایل‌های داخل این پوشه را دانلود کنید.
+1. Download all files in this folder.
 
-2. برنامه 7-Zip را نصب کنید:
+2. Install 7-Zip (Free):
    https://www.7-zip.org/
 
-3. روی فایل اول (معمولاً فایل.7z.001) راست کلیک کنید → 
-   7-Zip → "Extract Here"
+3. Right-click the first file (usually filename.7z.001)
+   → 7-Zip → "Extract Here"
 
-روش جایگزین با Command Prompt (cmd):
+Alternative method using Command Prompt (cmd):
 
-copy /B "*.7z.001" + "*.7z.002" + "*.7z.003" + ... "فایل_اصلی.7z"
+copy /B "*.7z.001" + "*.7z.002" + "*.7z.003" + ... "original_filename.7z"
 
-بعد از جوین، فایل اصلی آماده استفاده است.
+After joining, you will get the original file.
 ====================================
 EOF
 
