@@ -7,7 +7,7 @@ A GitHub Actions workflow that lets you download files into your repository just
 ---
 
 ## ⚙️ Setup.
-0. Fork this repo.
+0. Fork this repo.ب
 1. Go to your repository on GitHubب.
 2. Click **Settings** → **Actions** → **General**..
 3. Scroll down to **Workflow ..**ب
