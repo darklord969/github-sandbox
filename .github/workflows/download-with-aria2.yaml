@@ -1,77 +1,75 @@
-name: Download from Commit & Save to Repo (Improved)
+name: Download via Commit Message
 
 on:
   push:
     branches:
-      - "**"
+      - main
 
 jobs:
-  save-file:
+  download:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-      - name: Install aria2 and 7z
-        run: sudo apt-get update && sudo apt-get install -y aria2 p7zip-full
-
-      - name: Extract URLs and download files
+      - name: Get commit message
+        id: commit
         run: |
-          MSG=$(git log -1 --pretty=%B)
-          echo "Commit message: $MSG"
+          echo "message<<EOF" >> $GITHUB_OUTPUT
+          git log -1 --pretty=%B >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-          if echo "$MSG" | grep -qP 'download-zip:'; then
-            MODE="zip"
-            URL_LINE=$(echo "$MSG" | grep -oP 'download-zip:\s*\K.*')
-          elif echo "$MSG" | grep -qP 'download:'; then
-            MODE="normal"
-            URL_LINE=$(echo "$MSG" | grep -oP 'download:\s*\K.*')
+      - name: Extract URLs
+        id: extract
+        run: |
+          msg="${{ steps.commit.outputs.message }}"
+          
+          if [[ "$msg" =~ download:\ (.*) ]]; then
+            echo "urls=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
           else
-            echo "❌ No download command found in commit message"
+            echo "No download command found"
             exit 0
           fi
 
-          echo "Mode: $MODE"
-          mkdir -p downloads tmp_downloads
+      - name: Install aria2
+        run: sudo apt-get update && sudo apt-get install -y aria2
 
-          for URL in $URL_LINE; do
-            FILENAME=$(basename "$URL")
-            echo "⬇️ Downloading $URL -> $FILENAME"
+      - name: Download files (Advanced Organized)
+        run: |
+          mkdir -p downloads
 
-            aria2c --split=2 --max-connection-per-server=2 --min-split-size=90M \
-              --out="$FILENAME" --dir="tmp_downloads" "$URL" || continue
+          URLS="${{ steps.extract.outputs.urls }}"
 
-            FOLDER_NAME="${FILENAME}"
-            mkdir -p "downloads/${FOLDER_NAME}"
+          for url in $URLS; do
+            filename=$(basename "$url" | cut -d '?' -f1)
 
-            FILE_SIZE=$(stat -c%s "tmp_downloads/$FILENAME" 2>/dev/null || echo 0)
+            # حذف کاراکترهای اضافی
+            clean_name=$(echo "$filename" | sed 's/[^a-zA-Z0-9._-]/_/g')
 
-            if [ "$FILE_SIZE" -gt $((95 * 1024 * 1024)) ]; then
-              echo "✂️ Splitting $FILENAME into 95MB parts with 7z..."
-              cd "tmp_downloads"
-              7z a -v95m "../downloads/${FOLDER_NAME}/${FILENAME}.7z" "$FILENAME"
-              cd ..
-            else
-              mv "tmp_downloads/$FILENAME" "downloads/${FOLDER_NAME}/"
-            fi
+            folder="downloads/${clean_name%.*}"
+            mkdir -p "$folder"
 
-            cat > "downloads/${FOLDER_NAME}/HOW_TO_JOIN.txt" << 'EOF'
+            echo "⬇️ Downloading: $clean_name"
 
-EOF
+            aria2c -x 16 -s 16 -k 1M \
+              --dir="$folder" \
+              --out="$clean_name" \
+              "$url"
+
+            echo "📄 Creating info file..."
+
+            echo "Original URL: $url" > "$folder/info.txt"
+            echo "Saved as: $clean_name" >> "$folder/info.txt"
+            echo "Date: $(date)" >> "$folder/info.txt"
 
           done
 
-          rm -rf tmp_downloads
-
-      - name: Commit & Push
+      - name: Commit and push
         run: |
           git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config user.email "actions@github.com"
+
           git add downloads/
-          git commit -m "Add downloaded files from commit [skip ci]" || echo "Nothing to commit"
-          git push origin HEAD:${GITHUB_REF_NAME}
+          git commit -m "📥 downloaded files [skip ci]" || echo "Nothing to commit"
+          git push
