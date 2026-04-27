@@ -46,7 +46,6 @@ jobs:
             aria2c --split=2 --max-connection-per-server=2 --min-split-size=90M \
               --out="$FILENAME" --dir="tmp_downloads" "$URL" || continue
 
-            # Create folder with the original filename
             FOLDER_NAME="${FILENAME}"
             mkdir -p "downloads/${FOLDER_NAME}"
 
@@ -61,25 +60,8 @@ jobs:
               mv "tmp_downloads/$FILENAME" "downloads/${FOLDER_NAME}/"
             fi
 
-            # Create join instructions
             cat > "downloads/${FOLDER_NAME}/HOW_TO_JOIN.txt" << 'EOF'
-====================================
-How to Join Split Files (Windows)
 
-1. Download all files in this folder.
-
-2. Install 7-Zip (Free):
-   https://www.7-zip.org/
-
-3. Right-click the first file (usually filename.7z.001)
-   → 7-Zip → "Extract Here"
-
-Alternative method using Command Prompt (cmd):
-
-copy /B "*.7z.001" + "*.7z.002" + "*.7z.003" + ... "original_filename.7z"
-
-After joining, you will get the original file.
-====================================
 EOF
 
           done
