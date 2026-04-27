@@ -37,13 +37,12 @@ jobs:
           fi
 
           echo "Mode: $MODE"
-          mkdir -p downloads
+          mkdir -p downloads tmp_downloads
 
           for URL in $URL_LINE; do
             FILENAME=$(basename "$URL")
             echo "⬇️ Downloading $URL -> $FILENAME"
 
-            # دانلود با aria2
             aria2c --split=2 --max-connection-per-server=2 --min-split-size=90M \
               --out="$FILENAME" --dir="tmp_downloads" "$URL" || continue
 
@@ -51,10 +50,10 @@ jobs:
             FOLDER_NAME="${FILENAME}"
             mkdir -p "downloads/${FOLDER_NAME}"
 
-            # اگر فایل بزرگ بود → split با 7z
             FILE_SIZE=$(stat -c%s "tmp_downloads/$FILENAME" 2>/dev/null || echo 0)
+
             if [ "$FILE_SIZE" -gt $((95 * 1024 * 1024)) ]; then
-              echo "✂️ Splitting $FILENAME into 95MB parts..."
+              echo "✂️ Splitting $FILENAME into 95MB parts with 7z..."
               cd "tmp_downloads"
               7z a -v95m "../downloads/${FOLDER_NAME}/${FILENAME}.7z" "$FILENAME"
               cd ..
@@ -62,20 +61,22 @@ jobs:
               mv "tmp_downloads/$FILENAME" "downloads/${FOLDER_NAME}/"
             fi
 
-            # ایجاد فایل راهنما برای جوین کردن
-            cat > "downloads/${FOLDER_NAME}/HOW_TO_JOIN.txt" << EOF
-چگونه فایل را دوباره یکپارچه کنیم (روی ویندوز):
+            # ایجاد فایل راهنما (بدون مشکل indentation)
+            cat > "downloads/${FOLDER_NAME}/HOW_TO_JOIN.txt" << 'EOF'
+چگونه فایل را دوباره یکپارچه (جوین) کنیم روی ویندوز:
 
-1. مطمئن شوید همه فایل‌های داخل این پوشه را دانلود کرده‌اید.
-2. برنامه 7-Zip را نصب کنید (رایگان): https://www.7-zip.org/
-3. روی فایل اول (معمولاً فایل با پسوند .7z یا .zip) راست کلیک کنید.
-4. گزینه "Extract Here" یا "Extract to ..." را انتخاب کنید.
-   یا از 7-Zip File Manager فایل اول را باز کنید و Extract کنید.
+1. همه فایل‌های داخل این پوشه را دانلود کنید (فایل با پسوند .7z.001 یا .7z و بقیه .7z.002 و ...).
 
-روش جایگزین با Command Prompt:
-   copy /B "${FILENAME}.7z.001" + "${FILENAME}.7z.002" + ... "${FILENAME}.7z"
+2. برنامه 7-Zip را نصب کنید (رایگان):
+   https://www.7-zip.org/
 
-فایل اصلی بعد از جوین شدن: ${FILENAME}
+3. روی فایل اول (معمولاً فایل با نام فایل.7z.001 یا فایل.7z) راست کلیک کنید → 
+   7-Zip → "Extract Here" یا "Extract to ..."
+
+روش جایگزین ساده با Command Prompt (cmd):
+   copy /B "فایل اصلی.7z.001" + "فایل اصلی.7z.002" + "فایل اصلی.7z.003" + ... "فایل اصلی.7z"
+
+بعد از جوین شدن، فایل اصلی آماده استفاده است.
 EOF
 
           done
