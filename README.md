@@ -6,15 +6,15 @@ A GitHub Actions workflow that lets you download files into your repository just
 
 ---
 
-## ⚙️ Setup.
+## ⚙️ Setup.بب
 0. Fork this repo.ب
 1. Go to your repository on GitHubب.
 2. Click **Settings** → **Actions** → **General**..
 3. Scroll down to **Workflow ..**ب
 4. Select **Read and write permissions** and click **Save**
-.ببب
+.بببب
 That's it — no tokens or secrets neededی
-
+ببب
 ---
 
 ## 🚀 Usage
