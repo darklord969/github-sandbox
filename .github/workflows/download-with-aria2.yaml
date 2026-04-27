@@ -1,4 +1,4 @@
-name: Smart Download via Commit
+name: Download via Commit Message
 
 on:
   push:
@@ -32,84 +32,36 @@ jobs:
             exit 0
           fi
 
-      - name: Install tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y aria2 wget curl
+      - name: Install aria2
+        run: sudo apt-get update && sudo apt-get install -y aria2
 
-      - name: Smart Download Engine
+      - name: Download files (Advanced Organized)
         run: |
           mkdir -p downloads
 
           URLS="${{ steps.extract.outputs.urls }}"
 
           for url in $URLS; do
-
             filename=$(basename "$url" | cut -d '?' -f1)
+
+            # حذف کاراکترهای اضافی
             clean_name=$(echo "$filename" | sed 's/[^a-zA-Z0-9._-]/_/g')
 
             folder="downloads/${clean_name%.*}"
             mkdir -p "$folder"
 
-            echo "=============================="
             echo "⬇️ Downloading: $clean_name"
-            echo "URL: $url"
-            echo "=============================="
 
-            success=false
-
-            # 🔥 Try aria2 (advanced)
             aria2c -x 16 -s 16 -k 1M \
-              --max-tries=3 \
-              --retry-wait=5 \
-              --timeout=30 \
-              --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-              --header="Accept: */*" \
-              --header="Connection: keep-alive" \
-              --header="Accept-Language: en-US,en;q=0.9" \
-              --header="Referer: https://www.google.com/" \
-              --allow-overwrite=true \
-              --auto-file-renaming=false \
               --dir="$folder" \
               --out="$clean_name" \
-              "$url" && success=true
+              "$url"
 
-            # 🔁 fallback → wget
-            if [ "$success" = false ]; then
-              echo "⚠️ aria2 failed → trying wget..."
+            echo "📄 Creating info file..."
 
-              wget \
-                --tries=3 \
-                --timeout=30 \
-                --user-agent="Mozilla/5.0" \
-                -O "$folder/$clean_name" \
-                "$url" && success=true
-            fi
-
-            # 🔁 fallback → curl
-            if [ "$success" = false ]; then
-              echo "⚠️ wget failed → trying curl..."
-
-              curl -L \
-                --retry 3 \
-                --connect-timeout 30 \
-                -A "Mozilla/5.0" \
-                -o "$folder/$clean_name" \
-                "$url" && success=true
-            fi
-
-            # ❌ اگر هیچکدوم جواب نداد
-            if [ "$success" = false ]; then
-              echo "❌ Failed to download: $url"
-              continue
-            fi
-
-            # 📄 ساخت info
             echo "Original URL: $url" > "$folder/info.txt"
             echo "Saved as: $clean_name" >> "$folder/info.txt"
             echo "Date: $(date)" >> "$folder/info.txt"
-
-            echo "✅ Done: $clean_name"
 
           done
 
@@ -119,5 +71,5 @@ jobs:
           git config user.email "actions@github.com"
 
           git add downloads/
-          git commit -m "📥 smart download [skip ci]" || echo "Nothing to commit"
+          git commit -m "📥 downloaded files [skip ci]" || echo "Nothing to commit"
           git push
