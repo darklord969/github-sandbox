@@ -15,8 +15,7 @@ A GitHub Actions workflow that lets you download files into your repository just
 .بببب
 That's it — no tokens or secrets neededی
 ببب
----
-ببب
+بببب
 ## 🚀 Usage
 c
 You trigger downloads by editing any file directly on GitHub and using a special commit message when saving.
