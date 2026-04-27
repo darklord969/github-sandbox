@@ -1,0 +1,72 @@
+name: 🚀 Download & Upload to Release (PRO)
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🧠 Get Commit Message
+        id: commit
+        run: |
+          echo "msg<<EOF" >> $GITHUB_OUTPUT
+          git log -1 --pretty=%B >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: 🔍 Extract URLs
+        id: extract
+        run: |
+          msg="${{ steps.commit.outputs.msg }}"
+          urls=$(echo "$msg" | grep -oP '(?<=release: ).*')
+          
+          if [ -z "$urls" ]; then
+            echo "❌ No release command found"
+            exit 0
+          fi
+
+          echo "urls=$urls" >> $GITHUB_OUTPUT
+
+      - name: ⚡ Install aria2
+        run: sudo apt-get update && sudo apt-get install -y aria2
+
+      - name: 📦 Download Files (Stable + Resume)
+        run: |
+          mkdir -p files
+          cd files
+
+          for url in ${{ steps.extract.outputs.urls }}
+          do
+            echo "⬇️ Downloading: $url"
+            aria2c \
+              -x 16 \
+              -s 16 \
+              -k 1M \
+              --file-allocation=none \
+              --continue=true \
+              "$url"
+          done
+
+      - name: 🧾 List Downloaded Files
+        run: ls -lh files
+
+      - name: 🏷 Create Release + Upload Files
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: release-${{ github.run_id }}
+          name: 🚀 Auto Release ${{ github.run_id }}
+          body: |
+            🤖 Auto generated release
+            Triggered by commit message
+          files: files/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
